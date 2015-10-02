@@ -72,7 +72,10 @@ namespace Microsoft.Practices.IoTJourney.ColdStorage.EventProcessor.ConsoleHost
                 
                 await Task.Delay(Timeout.InfiniteTimeSpan, token);
             }
-            catch (Exception){}
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
 
             if (processor != null)
             {

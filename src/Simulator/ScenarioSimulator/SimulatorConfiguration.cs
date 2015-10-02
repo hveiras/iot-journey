@@ -15,8 +15,6 @@ namespace Microsoft.Practices.IoTJourney.ScenarioSimulator
 
         public int EventHubTokenLifetimeDays { get; set; }
 
-        public string EventHubName { get; set; }
-
         public string IotHubOwnerConnectionString { get; set; }
 
         public TimeSpan WarmUpDuration { get; set; }
@@ -40,7 +38,6 @@ namespace Microsoft.Practices.IoTJourney.ScenarioSimulator
             {
                 Scenario = ConfigurationHelper.GetConfigValue<string>("Simulator.Scenario", String.Empty),
                 NumberOfDevices = ConfigurationHelper.GetConfigValue<int>("Simulator.NumberOfDevices"),
-                EventHubName = ConfigurationHelper.GetConfigValue<string>("Simulator.EventHubName"),
                 EventHubTokenLifetimeDays = ConfigurationHelper.GetConfigValue<int>("Simulator.EventHubTokenLifetimeDays", 7),
                 WarmUpDuration = ConfigurationHelper.GetConfigValue("Simulator.WarmUpDuration", TimeSpan.FromSeconds(30)),
                 _eventLevel = ConfigurationHelper.GetConfigValue<EventLevel>("Simulator.LogLevel", EventLevel.Informational),
@@ -51,9 +48,8 @@ namespace Microsoft.Practices.IoTJourney.ScenarioSimulator
         public override string ToString()
         {
             return String.Format(CultureInfo.InvariantCulture,
-                "Simulation SimulatorConfiguration; device count = {0} event hub name = {1}",
-                NumberOfDevices,
-                EventHubName);
+                "Simulation SimulatorConfiguration; device count = {0}",
+                NumberOfDevices);
         }
     }
 }

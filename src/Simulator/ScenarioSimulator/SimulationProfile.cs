@@ -55,15 +55,22 @@ namespace Microsoft.Practices.IoTJourney.ScenarioSimulator
 
                 var registryManager = RegistryManager.CreateFromConnectionString(_simulatorConfiguration.IotHubOwnerConnectionString);
 
-                Device device;
-                try
+                var device = await registryManager.GetDeviceAsync(deviceId);
+
+                if(device == null)
                 {
                     device = await registryManager.AddDeviceAsync(new Device(deviceId), ct);
                 }
-                catch (DeviceAlreadyExistsException)
-                {
-                    device = await registryManager.GetDeviceAsync(deviceId, ct);
-                }
+
+                //Device device;
+                //try
+                //{
+                //    device = await registryManager.AddDeviceAsync(new Device(deviceId), ct);
+                //}
+                //catch (DeviceAlreadyExistsException)
+                //{
+                //    device = await registryManager.GetDeviceAsync(deviceId, ct);
+                //}
 
                 _devices.Add(new SimulatedDevice(device, i));
             }

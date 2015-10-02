@@ -66,7 +66,8 @@ namespace Microsoft.Practices.IoTJourney.WarmStorage.EventProcessor
                 consumerGroupName: configuration.ConsumerGroupName,
                 eventHubPath: configuration.EventHubName,
                 eventHubConnectionString: configuration.EventHubConnectionString,
-                storageConnectionString: configuration.CheckpointStorageAccount);
+                storageConnectionString: configuration.CheckpointStorageAccount,
+                leaseContainerName: configuration.EventHubName.ToLower());
 
             await host.RegisterEventProcessorFactoryAsync(factory, options);
 
