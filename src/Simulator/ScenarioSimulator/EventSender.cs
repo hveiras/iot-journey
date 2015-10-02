@@ -4,34 +4,33 @@
 using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
-using Microsoft.Practices.IoTJourney.Devices.Events;
 using Microsoft.Practices.IoTJourney.Logging;
-using Microsoft.ServiceBus.Messaging;
-using Microsoft.ServiceBus;
+using Microsoft.Azure.Devices;
+using Microsoft.Azure.Devices.Common.Exceptions;
+using Microsoft.Azure.Devices.Client;
 
 namespace Microsoft.Practices.IoTJourney.ScenarioSimulator
 {
     public class EventSender : IEventSender
     {
-        private readonly EventHubSender _eventHubSender;
+        private readonly DeviceClient _deviceClient;
+        static string iotHubUri = "IoTHubTestHav.azure-devices.net";
 
         private readonly Func<object, byte[]> _serializer;
 
         public EventSender(
-            Device device,
+            SimulatedDevice simulatedDevice,
             SimulatorConfiguration config,
             Func<object, byte[]> serializer)
         {
             this._serializer = serializer;
 
-            var connectionString = ServiceBusConnectionStringBuilder.CreateUsingSharedAccessSignature(
-                                         device.Endpoint,
-                                         device.EventHubName,
-                                         device.Id,
-                                         device.Token
-                                   );
-
-            _eventHubSender = EventHubSender.CreateFromConnectionString(connectionString);
+            _deviceClient = DeviceClient.Create(iotHubUri, 
+                                                new DeviceAuthenticationWithRegistrySymmetricKey
+                                                (
+                                                    simulatedDevice.Id,
+                                                    simulatedDevice.Authentication.SymmetricKey.PrimaryKey
+                                                ));
         }
 
         public static string DetermineTypeFromEvent(object evt)
@@ -45,11 +44,11 @@ namespace Microsoft.Practices.IoTJourney.ScenarioSimulator
             {
                 var bytes = this._serializer(evt);
 
-                using (var eventData = new EventData(bytes))
+                using (var message = new Azure.Devices.Client.Message(bytes))
                 {
                     var stopwatch = Stopwatch.StartNew();
 
-                    await _eventHubSender.SendAsync(eventData).ConfigureAwait(false);
+                    await _deviceClient.SendEventAsync(message).ConfigureAwait(false);
                     stopwatch.Stop();
 
                     ScenarioSimulatorEventSource.Log.EventSent(stopwatch.ElapsedTicks);

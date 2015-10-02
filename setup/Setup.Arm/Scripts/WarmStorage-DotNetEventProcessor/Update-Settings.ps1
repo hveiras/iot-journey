@@ -37,9 +37,6 @@ PROCESS
     #simulator settings
     $simulatorSettings = @{
         'Simulator.EventHubNamespace'= $deploymentInfo.Outputs["serviceBusNamespaceName"].Value;
-        'Simulator.EventHubName' = $deploymentInfo.Outputs["eventHubName"].Value;
-        'Simulator.EventHubSasKeyName' = $deploymentInfo.Outputs["sharedAccessPolicyName"].Value;
-        'Simulator.EventHubPrimaryKey' = $deploymentInfo.Outputs["sharedAccessPolicyPrimaryKey"].Value;
         'Simulator.EventHubTokenLifetimeDays' = ($deploymentInfo.Outputs["messageRetentionInDays"].Value -as [string]);
     }
     

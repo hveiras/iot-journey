@@ -9,34 +9,36 @@ using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Practices.IoTJourney.Logging;
+using Microsoft.Azure.Devices;
 
 namespace Microsoft.Practices.IoTJourney.ScenarioSimulator
 {
-    public class Device
+    public class SimulatedDevice
     {
         private static readonly TimeSpan LoopFrequency = TimeSpan.FromSeconds(0.33);
 
-        public ISubject<int> ObservableEventCount { get; private set; }
+        private Device _device;
 
-        public string Id { get; private set; }
+        public string Id
+        {
+            get { return _device.Id; }
+        }
 
-        public Uri Endpoint { get; private set; }
-
-        public string EventHubName { get; private set; }
+        public AuthenticationMechanism Authentication
+        {
+            get { return _device.Authentication; }
+        }
 
         public int StartupOrder { get; private set; }
 
-        public string Token { get; set; }
-
         public float? CurrentTemperature { get; set; }
 
-        public Device(string deviceId, Uri endpoint, string eventHubName, int startupOrder)
-        {
-            Id = deviceId;
-            Endpoint = endpoint;
-            StartupOrder = startupOrder;
-            EventHubName = eventHubName;
+        public ISubject<int> ObservableEventCount { get; private set; }
 
+        public SimulatedDevice(Device device, int startupOrder)
+        {
+            _device = device;
+            StartupOrder = startupOrder;
             ObservableEventCount = new Subject<int>();
         }
 

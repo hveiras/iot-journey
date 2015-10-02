@@ -67,11 +67,9 @@ namespace Microsoft.Practices.IoTJourney.ScenarioSimulator.ConsoleHost
             Tests.Common.ConsoleHost.RunWithOptionsAsync(options).Wait();
         }
 
-        private static async Task ProvisionDevicesAsync(CancellationToken token)
+        private static async Task ProvisionDevicesAsync(CancellationToken ct)
         {
-            _deviceSimulator.ProvisionDevices(true);
-
-            await Task.Delay(0);
+            await _deviceSimulator.ProvisionDevicesAsync(ct, true);
         }
 
         //Uncomment this code when implementing deprovisioning.

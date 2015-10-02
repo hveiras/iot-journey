@@ -22,7 +22,7 @@ namespace Microsoft.Practices.IoTJourney.ScenarioSimulator.WorkerRole
                 var hostName = ConfigurationHelper.SourceName;
                 _deviceSimulator = new SimulationProfile(hostName, configuration);  
                 
-                _deviceSimulator.ProvisionDevices(true);
+                _deviceSimulator.ProvisionDevicesAsync(CancellationToken.None, true).Wait();
 
                 return base.OnStart();
             }

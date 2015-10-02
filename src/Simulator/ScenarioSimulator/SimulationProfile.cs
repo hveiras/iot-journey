@@ -11,6 +11,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Practices.IoTJourney.Logging;
 using Microsoft.ServiceBus;
+using Microsoft.Azure.Devices;
+using Microsoft.Azure.Devices.Common.Exceptions;
 
 namespace Microsoft.Practices.IoTJourney.ScenarioSimulator
 {
@@ -22,8 +24,8 @@ namespace Microsoft.Practices.IoTJourney.ScenarioSimulator
 
         private readonly Subject<int> _eventsSentCount = new Subject<int>();
 
-        private readonly IList<Device> _devices = new List<Device>();
-
+        private readonly IList<SimulatedDevice> _devices = new List<SimulatedDevice>();
+        
         public SimulationProfile(
             string hostName,
             SimulatorConfiguration simulatorConfiguration)
@@ -35,10 +37,8 @@ namespace Microsoft.Practices.IoTJourney.ScenarioSimulator
             _simulatorConfiguration = simulatorConfiguration;
         }
 
-        public void ProvisionDevices(bool force)
+        public async Task ProvisionDevicesAsync(CancellationToken ct, bool force)
         {
-            //ScenarioSimulatorEventSource.Log.ProvisionDevicesSatarted();
-
             if (_devices.Any() && !force)
             {
                 throw new InvalidOperationException("Devices already provisioned. Use force option to reprovision.");
@@ -53,21 +53,19 @@ namespace Microsoft.Practices.IoTJourney.ScenarioSimulator
                     "{0}-{1}",
                     ConfigurationHelper.InstanceName, i);
 
-                var endpoint = ServiceBusEnvironment.CreateServiceUri("sb", _simulatorConfiguration.EventHubNamespace, string.Empty);
-                var eventHubName = _simulatorConfiguration.EventHubName;
+                var registryManager = RegistryManager.CreateFromConnectionString(_simulatorConfiguration.IotHubOwnerConnectionString);
 
-                // Generate token for the device.
-                string deviceToken = SharedAccessSignatureTokenProvider.GetPublisherSharedAccessSignature
-                (
-                    endpoint,
-                    eventHubName,
-                    deviceId,
-                    _simulatorConfiguration.EventHubSasKeyName,
-                    _simulatorConfiguration.EventHubPrimaryKey,
-                    TimeSpan.FromDays(_simulatorConfiguration.EventHubTokenLifetimeDays)
-                );
+                Device device;
+                try
+                {
+                    device = await registryManager.AddDeviceAsync(new Device(deviceId), ct);
+                }
+                catch (DeviceAlreadyExistsException)
+                {
+                    device = await registryManager.GetDeviceAsync(deviceId, ct);
+                }
 
-                _devices.Add(new Device(deviceId, endpoint, eventHubName, i) { Token = deviceToken });
+                _devices.Add(new SimulatedDevice(device, i));
             }
         }
 
@@ -111,13 +109,13 @@ namespace Microsoft.Practices.IoTJourney.ScenarioSimulator
             foreach (var device in _devices)
             {
                 var eventSender = new EventSender(
-                    device: device,
+                    simulatedDevice: device,
                     config: _simulatorConfiguration,
                     serializer: Serializer.ToJsonUTF8
                 );
 
                 var deviceTask = SimulateDeviceAsync(
-                    device: device,
+                    simulatedDevice: device,
                     produceEventsForScenario: produceEventsForScenario,
                     sendEventsAsync: eventSender.SendAsync,
                     waitBeforeStarting: TimeSpan.FromTicks(warmupPerDevice * device.StartupOrder),
@@ -136,14 +134,14 @@ namespace Microsoft.Practices.IoTJourney.ScenarioSimulator
         }
 
         private static async Task SimulateDeviceAsync(
-            Device device,
+            SimulatedDevice simulatedDevice,
             Func<EventEntry[]> produceEventsForScenario,
             Func<object, Task<bool>> sendEventsAsync,
             TimeSpan waitBeforeStarting,
             IObserver<int> totalCount,
             CancellationToken token)
         {
-            ScenarioSimulatorEventSource.Log.WarmingUpFor(device.Id, waitBeforeStarting.Ticks);
+            ScenarioSimulatorEventSource.Log.WarmingUpFor(simulatedDevice.Id, waitBeforeStarting.Ticks);
 
             try
             {
@@ -156,14 +154,14 @@ namespace Microsoft.Practices.IoTJourney.ScenarioSimulator
 
             var messagingEntries = produceEventsForScenario();
 
-            device.ObservableEventCount
+            simulatedDevice.ObservableEventCount
                 .Sum()
-                .Subscribe(total => ScenarioSimulatorEventSource.Log.FinalEventCount(device.Id, total));
+                .Subscribe(total => ScenarioSimulatorEventSource.Log.FinalEventCount(simulatedDevice.Id, total));
 
-            device.ObservableEventCount
+            simulatedDevice.ObservableEventCount
                 .Subscribe(totalCount.OnNext);
 
-            await device.RunSimulationAsync(messagingEntries, sendEventsAsync, token).ConfigureAwait(false);
+            await simulatedDevice.RunSimulationAsync(messagingEntries, sendEventsAsync, token).ConfigureAwait(false);
         }
 
         public void Dispose()
